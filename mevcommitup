@@ -101,6 +101,8 @@ if [ -z "$ADDRESS" ]; then
     exit 1
 fi
 
+KEY=$(cat key)
+
 # Use the RPC URL variable in the cast send command
 if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f015874594d321c1c01ada3166c3509bbd91f76f9e4d7380c2df269c55 $ADDRESS --value 100ether; then
     echo "Failed to send transaction with cast."
@@ -128,6 +130,7 @@ bootnodes:
 EOL
     ;;
     "provider")
+    cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether
         # Configure for provider
         cat > config.yaml <<EOL
 priv_key_file: ~/.mevcommitup/key
