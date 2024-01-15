@@ -130,7 +130,10 @@ bootnodes:
 EOL
     ;;
     "provider")
-    cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether
+        if ! $HOME/.foundry/bin/cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether; then
+            echo "Failed to send provider registration transaction."
+            exit 1
+        fi
         # Configure for provider
         cat > config.yaml <<EOL
 priv_key_file: ~/.mevcommitup/key
