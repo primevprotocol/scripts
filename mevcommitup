@@ -60,7 +60,8 @@ case $OS in
 esac
 
 # Download the file using curl
-curl -L "${BASE_URL}/${FILE}" -o "${FILE}"
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Downloading mev-commit files...\033[0m"
+curl -s -L "${BASE_URL}/${FILE}" -o "${FILE}"
 
 # Check if the download was successful
 if [ ! -f "${FILE}" ]; then
@@ -71,14 +72,19 @@ fi
 # Check the file type
 file "${FILE}"
 
-curl -L https://foundry.paradigm.xyz | bash
-$HOME/.foundry/bin/foundryup
+# Create the foundry directory if it doesn't exist
+if [ ! -d ~/.foundry/bin ]; then
+    curl -s -L https://foundry.paradigm.xyz | bash
+    $HOME/.foundry/bin/foundryup
+fi
 
 # Create the target directory if it doesn't exist
 mkdir -p ~/.mevcommitup
 
+
 # Extract the file to the target directory with verbose output
-tar -xvzf "${FILE}" -C ~/.mevcommitup || { echo "Extraction failed"; exit 1; }
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Extracting files...\033[0m"
+tar -xzf "${FILE}" -C ~/.mevcommitup || { echo "Extraction failed"; exit 1; }
 
 # Check if the extraction was successful
 if [ ! -f ~/.mevcommitup/mev-commit ]; then
@@ -90,16 +96,17 @@ fi
 cd ~/.mevcommitup
 
 # Run mev-commit to create key and extract address
-if ! ./mev-commit create-key key; then
-    echo "Failed to create key with mev-commit."
-    exit 1
-fi
-
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Creating new private key...\033[0m"
 ADDRESS=$(./mev-commit create-key key | grep -o '0x[a-zA-Z0-9]\+')
 if [ -z "$ADDRESS" ]; then
     echo "Failed to extract the wallet address."
     exit 1
 fi
+
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Created private key and saved.\033[0m"
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Wallet Address: $ADDRESS \033[0m"
+
+KEY=$(cat key)
 
 # Use the RPC URL variable in the cast send command
 if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f015874594d321c1c01ada3166c3509bbd91f76f9e4d7380c2df269c55 $ADDRESS --value 100ether; then
@@ -128,6 +135,9 @@ bootnodes:
 EOL
     ;;
     "provider")
+    cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether
+        # Configure for provider
+        cat > config.yaml <<EOL
         # Configure for provider
         cat > config.yaml <<EOL
 priv_key_file: ~/.mevcommitup/key
