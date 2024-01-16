@@ -83,6 +83,22 @@ if [ ! -d ~/.foundry/bin ]; then
     $HOME/.foundry/bin/foundryup
 fi
 
+# check if ROOT_DIRECTORY exists; if it does, ask user if they want to overwrite
+if [ -d "$ROOT_DIRECTORY" ]; then
+    echo -e "\033[31m[\033[34m*\033[31m]\033[33m $ROOT_DIRECTORY already exists. Do you want to overwrite it? [y/n]\033[0m"
+    read -r OVERWRITE
+    if [ "$OVERWRITE" == "y" ]; then
+        rm -rf $ROOT_DIRECTORY
+    else
+        # Start mev-commit with the config file
+        if ! $ROOT_DIRECTORY/mev-commit start --config=$ROOT_DIRECTORY/config.yaml; then
+            echo "Failed to start mev-commit with the specified config."
+            exit 1
+        fi
+    fi
+fi
+
+
 # Create the target directory if it doesn't exist
 mkdir -p $ROOT_DIRECTORY
 
@@ -99,8 +115,14 @@ fi
 cd $ROOT_DIRECTORY
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initializing mev-commit...\033[0m"
+./mev-commit init --dir $ROOT_DIRECTORY --rpc-endpoint $RPC_URL --peer-type $NODE_TYPE > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initialized config file and private key under $ROOT_DIRECTORY ...\033[0m"
+else
+    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Failed to initialize ...\033[0m"
+    exit 1
+fi
 
-./mev-commit init --dir $ROOT_DIRECTORY --rpc-endpoint $RPC_URL --peer-type $NODE_TYPE
 
 KEY=$(cat $ROOT_DIRECTORY/key)
 ADDRESS=$(cast wallet address --private-key 0x$(cat $ROOT_DIRECTORY/key))
@@ -109,10 +131,8 @@ echo -e "\033[31m[\033[34m*\033[31m]\033[33m Created private key and saved.\033[
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Wallet Address: $ADDRESS \033[0m"
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Funding Wallet Address: $ADDRESS with 100 ether \033[0m"
-
-# Use the RPC URL variable in the cast send command
-if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f015874594d321c1c01ada3166c3509bbd91f76f9e4d7380c2df269c55 $ADDRESS --value 100ether; then
-    echo "Failed to send transaction with cast."
+if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f015874594d321c1c01ada3166c3509bbd91f76f9e4d7380c2df269c55 $ADDRESS --value 100ether > /dev/null 2>&1; then
+    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Failed to send transaction with cast. \033[0m"
     exit 1
 fi
 
@@ -121,7 +141,7 @@ if [ "$NODE_TYPE" == "provider" ]; then
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
 
     # Use the RPC URL variable in the cast send command
-    if ! $HOME/.foundry/bin/cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether; then
+    if ! $HOME/.foundry/bin/cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether > /dev/null 2>&1; then
             echo "Failed to send provider registration transaction."
             exit 1
     fi
