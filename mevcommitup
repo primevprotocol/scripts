@@ -3,6 +3,11 @@
 # Initialize variables
 RPC_URL=""
 NODE_TYPE=""
+ROOT_DIRECTORY="$HOME/.mevcommit"
+MEV_COMMIT_VERISON="v0.1.1"
+# Define the base URL for downloading the mev-commit release
+BASE_URL="https://github.com/primevprotocol/mev-commit/releases/download/$MEV_COMMIT_VERISON"
+
 
 # Function to show usage
 usage() {
@@ -30,9 +35,6 @@ fi
 # Determine OS and Architecture
 OS=$(uname -s)
 ARCH=$(uname -m)
-
-# Define the base URL
-BASE_URL="https://github.com/primevprotocol/mev-commit/releases/download/v0.1.0"
 
 # Select the correct file based on OS and Architecture
 case $OS in
@@ -73,6 +75,8 @@ fi
 # Check the file type
 file "${FILE}"
 
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Installing foundry...\033[0m"
+
 # Create the foundry directory if it doesn't exist
 if [ ! -d ~/.foundry/bin ]; then
     curl -s -L https://foundry.paradigm.xyz | bash
@@ -80,31 +84,31 @@ if [ ! -d ~/.foundry/bin ]; then
 fi
 
 # Create the target directory if it doesn't exist
-mkdir -p ~/.mevcommitup
+mkdir -p $ROOT_DIRECTORY
 
 # Extract the file to the target directory with verbose output
-tar -xzf "${FILE}" -C ~/.mevcommitup || { echo "Extraction failed"; exit 1; }
+tar -xzf "${FILE}" -C $ROOT_DIRECTORY || { echo "Extraction failed"; exit 1; }
 
 # Check if the extraction was successful
-if [ ! -f ~/.mevcommitup/mev-commit ]; then
+if [ ! -f $ROOT_DIRECTORY/mev-commit ]; then
     echo "Failed to find the mev-commit executable."
     exit 1
 fi
 
 # Navigate to the target directory
-cd ~/.mevcommitup
+cd $ROOT_DIRECTORY
 
-echo -e "\033[31m[\033[34m*\033[31m]\033[33m Creating new private key...\033[0m"
-ADDRESS=$(./mev-commit create-key key | grep -o '0x[a-zA-Z0-9]\+')
-if [ -z "$ADDRESS" ]; then
-    echo "Failed to extract the wallet address."
-    exit 1
-fi
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initializing mev-commit...\033[0m"
+
+./mev-commit init --dir $ROOT_DIRECTORY --rpc-endpoint $RPC_URL --peer-type $NODE_TYPE
+
+KEY=$(cat $ROOT_DIRECTORY/key)
+ADDRESS=$(cast wallet address --private-key 0x$(cat $ROOT_DIRECTORY/key))
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Created private key and saved.\033[0m"
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Wallet Address: $ADDRESS \033[0m"
 
-KEY=$(cat key)
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m Funding Wallet Address: $ADDRESS with 100 ether \033[0m"
 
 # Use the RPC URL variable in the cast send command
 if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f015874594d321c1c01ada3166c3509bbd91f76f9e4d7380c2df269c55 $ADDRESS --value 100ether; then
@@ -112,55 +116,16 @@ if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f01
     exit 1
 fi
 
-# Choose or modify config.yaml based on NODE_TYPE
-case $NODE_TYPE in
-    "bidder")
-        # Configure for bidder
-        cat > config.yaml <<EOL
-priv_key_file: ~/.mevcommitup/key
-peer_type: bidder
-p2p_port: 13522
-http_port: 13523
-rpc_port: 13524
-secret: hello
-log_fmt: text
-log_level: debug
-bidder_registry_contract: 0x62197Abd7672925c7606Bdf9931e42baCa6619AD
-provider_registry_contract: 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC
-rpc_endpoint: $RPC_URL
-bootnodes:
-  - /ip4/69.67.151.95/tcp/13522/p2p/16Uiu2HAmLYUvthfDCewNMdfPhrVefBbsfaPL22fWWfC2zuoh5SpV
-EOL
-    ;;
-    "provider")
-        if ! $HOME/.foundry/bin/cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether; then
+# Check i Node_Type is provider
+if [ "$NODE_TYPE" == "provider" ]; then
+    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
+
+    # Use the RPC URL variable in the cast send command
+    if ! $HOME/.foundry/bin/cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether; then
             echo "Failed to send provider registration transaction."
             exit 1
-        fi
-        # Configure for provider
-        cat > config.yaml <<EOL
-priv_key_file: ~/.mevcommitup/key
-peer_type: provider
-p2p_port: 13522
-http_port: 13523
-rpc_port: 13524
-secret: hello
-log_fmt: text
-expose_provider_api: true
-log_level: debug
-bidder_registry_contract: 0x62197Abd7672925c7606Bdf9931e42baCa6619AD
-provider_registry_contract: 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC
-preconf_contract: 0xBB632720f817792578060F176694D8f7230229d9
-rpc_endpoint: $RPC_URL
-bootnodes:
-  - /ip4/69.67.151.95/tcp/13522/p2p/16Uiu2HAmLYUvthfDCewNMdfPhrVefBbsfaPL22fWWfC2zuoh5SpV
-EOL
-    ;;
-    *)
-        echo "Invalid node type."
-        exit 1
-    ;;
-esac
+    fi
+fi
 
 # Start mev-commit with the config file
 if ! ./mev-commit start --config=config.yaml; then
