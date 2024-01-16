@@ -120,7 +120,7 @@ p2p_port: 13522
 http_port: 13523
 rpc_port: 13524
 secret: hello
-log_fmt: json
+log_fmt: text
 log_level: debug
 bidder_registry_contract: 0x62197Abd7672925c7606Bdf9931e42baCa6619AD
 provider_registry_contract: 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC
@@ -142,7 +142,8 @@ p2p_port: 13522
 http_port: 13523
 rpc_port: 13524
 secret: hello
-log_fmt: json
+log_fmt: text
+expose_provider_api: true
 log_level: debug
 bidder_registry_contract: 0x62197Abd7672925c7606Bdf9931e42baCa6619AD
 provider_registry_contract: 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC
@@ -165,5 +166,3 @@ if ! ./mev-commit start --config=config.yaml; then
 fi
 
 echo "Script completed successfully."
-
-
