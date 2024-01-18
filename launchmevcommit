@@ -1,13 +1,17 @@
 #!/bin/bash
 
 # Initialize variables
-RPC_URL=""
+RPC_URL="http://69.67.151.95:8545"
 NODE_TYPE=""
-ROOT_DIRECTORY="$HOME/.mevcommit"
+ROOT_DIRECTORY="$HOME/.mev-commit"
 MEV_COMMIT_VERISON="v0.1.1"
 # Define the base URL for downloading the mev-commit release
 BASE_URL="https://github.com/primevprotocol/mev-commit/releases/download/$MEV_COMMIT_VERISON"
 
+# Contract Addresses
+BIDDER_REGISTRY_CONTRACT="0x62197Abd7672925c7606Bdf9931e42baCa6619AD"
+PROVIDER_REGISTRY_CONTRACT="0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC"
+PRECONF_CONTRACT="0xBB632720f817792578060F176694D8f7230229d9"
 
 # Function to show usage
 usage() {
@@ -84,19 +88,19 @@ if [ ! -d ~/.foundry/bin ]; then
 fi
 
 # check if ROOT_DIRECTORY exists; if it does, ask user if they want to overwrite
-if [ -d "$ROOT_DIRECTORY" ]; then
-    echo -e "\033[31m[\033[34m*\033[31m]\033[33m $ROOT_DIRECTORY already exists. Do you want to overwrite it? [y/n]\033[0m"
-    read -r OVERWRITE
-    if [ "$OVERWRITE" == "y" ]; then
-        rm -rf $ROOT_DIRECTORY
-    else
-        # Start mev-commit with the config file
-        if ! $ROOT_DIRECTORY/mev-commit start --config=$ROOT_DIRECTORY/config.yaml; then
-            echo "Failed to start mev-commit with the specified config."
-            exit 1
-        fi
-    fi
-fi
+# if [ -d "$ROOT_DIRECTORY" ]; then
+#     echo -e "\033[31m[\033[34m*\033[31m]\033[33m $ROOT_DIRECTORY already exists. Do you want to overwrite it? [y/n]\033[0m"
+#     read -r OVERWRITE
+#     if [ "$OVERWRITE" == "y" ]; then
+#         rm -rf $ROOT_DIRECTORY
+#     else
+#         # Start mev-commit with the config file
+#         if ! $ROOT_DIRECTORY/mev-commit start --config=$ROOT_DIRECTORY/config.yaml; then
+#             echo "Failed to start mev-commit with the specified config."
+#             exit 1
+#         fi
+#     fi
+# fi
 
 
 # Create the target directory if it doesn't exist
@@ -115,14 +119,10 @@ fi
 cd $ROOT_DIRECTORY
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initializing mev-commit...\033[0m"
-./mev-commit init --dir $ROOT_DIRECTORY --rpc-endpoint $RPC_URL --peer-type $NODE_TYPE > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initialized config file and private key under $ROOT_DIRECTORY ...\033[0m"
-else
-    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Failed to initialize ...\033[0m"
-    exit 1
-fi
+./mev-commit --settlement-rpc-endpoint $RPC_URL --peer-type $NODE_TYPE --bidder-registry-contract $BIDDER_REGISTRY_CONTRACT --provider-registry-contract $PROVIDER_REGISTRY_CONTRACT --preconf-contract $PRECONF_CONTRACT &
+server_pid=$!
 
+sleep 3
 
 KEY=$(cat $ROOT_DIRECTORY/key)
 ADDRESS=$(cast wallet address --private-key 0x$(cat $ROOT_DIRECTORY/key))
@@ -141,16 +141,19 @@ if [ "$NODE_TYPE" == "provider" ]; then
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
 
     # Use the RPC URL variable in the cast send command
-    if ! $HOME/.foundry/bin/cast send 0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether > /dev/null 2>&1; then
+    if ! $HOME/.foundry/bin/cast send $PROVIDER_REGISTRY_CONTRACT "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether > /dev/null 2>&1; then
+            echo "Failed to send provider registration transaction."
+            exit 1
+    fi
+else
+    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Adding a prepay for bidder with $ADDRESS \033[0m"
+
+    # Use the RPC URL variable in the cast send command
+    if ! curl -X POST http://localhost:13523/v1/bidder/prepay/1000000000000000000 > /dev/null 2>&1; then
             echo "Failed to send provider registration transaction."
             exit 1
     fi
 fi
 
-# Start mev-commit with the config file
-if ! ./mev-commit start --config=config.yaml; then
-    echo "Failed to start mev-commit with the specified config."
-    exit 1
-fi
 
-echo "Script completed successfully."
+wait $server_pid
