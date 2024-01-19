@@ -155,6 +155,18 @@ else
     fi
 fi
 
+# Function to cleanup on exit
+cleanup() {
+    echo "Killing mev-commit node with PID $server_pid"
+    kill $server_pid
+}
 
-echo -e "\033[31m[\033[34m*\033[31m]\033[33m To kill mev-commit, run: kill $server_pid \033[0m" 
+# Set trap to call cleanup on script exit
+trap cleanup EXIT SIGINT
+
+
+echo -e "\033[31m[\033[34m*\033[31m]\033[33m To kill mev-commit, exit the script. \033[0m" 
+
 wait $server_pid
+# ... [rest of your script] ...
+
