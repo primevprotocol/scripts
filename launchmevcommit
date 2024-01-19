@@ -119,7 +119,7 @@ fi
 cd $ROOT_DIRECTORY
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initializing mev-commit...\033[0m"
-./mev-commit --settlement-rpc-endpoint $RPC_URL --peer-type $NODE_TYPE --bidder-registry-contract $BIDDER_REGISTRY_CONTRACT --provider-registry-contract $PROVIDER_REGISTRY_CONTRACT --preconf-contract $PRECONF_CONTRACT &
+./mev-commit --settlement-rpc-endpoint $RPC_URL --peer-type $NODE_TYPE --bidder-registry-contract $BIDDER_REGISTRY_CONTRACT --provider-registry-contract $PROVIDER_REGISTRY_CONTRACT --preconf-contract $PRECONF_CONTRACT --bootnodes /ip4/69.67.151.95/tcp/13522/p2p/16Uiu2HAmLYUvthfDCewNMdfPhrVefBbsfaPL22fWWfC2zuoh5SpV & 
 server_pid=$!
 
 sleep 3
