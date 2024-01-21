@@ -125,7 +125,7 @@ server_pid=$!
 sleep 3
 
 KEY=$(cat $ROOT_DIRECTORY/key)
-ADDRESS=$(cast wallet address --private-key 0x$(cat $ROOT_DIRECTORY/key))
+ADDRESS=$($HOME/.foundry/bin/cast wallet address --private-key 0x$(cat $ROOT_DIRECTORY/key))
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Created private key and saved.\033[0m"
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Wallet Address: $ADDRESS \033[0m"
