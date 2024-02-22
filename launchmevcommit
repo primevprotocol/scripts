@@ -4,7 +4,7 @@
 RPC_URL="http://69.67.151.95:8545"
 NODE_TYPE=""
 ROOT_DIRECTORY="$HOME/.mev-commit"
-MEV_COMMIT_VERISON="v0.1.1"
+MEV_COMMIT_VERISON="v0.1.2-rc5"
 # Define the base URL for downloading the mev-commit release
 BASE_URL="https://github.com/primevprotocol/mev-commit/releases/download/$MEV_COMMIT_VERISON"
 
@@ -150,7 +150,7 @@ else
 
     # Use the RPC URL variable in the cast send command
     if ! curl -X POST http://localhost:13523/v1/bidder/prepay/1000000000000000000 > /dev/null 2>&1; then
-            echo "Failed to send provider registration transaction."
+            echo "Failed to send bidder registration transaction."
             exit 1
     fi
 fi
