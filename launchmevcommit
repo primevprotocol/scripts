@@ -135,7 +135,8 @@ if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f01
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Failed to send transaction with cast. \033[0m"
     exit 1
 fi
-
+# Need to wait for node to start up
+sleep 3
 # Check i Node_Type is provider
 if [ "$NODE_TYPE" == "provider" ]; then
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
