@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Initialize variables
-RPC_URL="http://69.67.151.95:8545"
+RPC_URL="https://chainrpc.testnet.mev-commit.xyz"
 NODE_TYPE=""
 ROOT_DIRECTORY="$HOME/.mev-commit"
-MEV_COMMIT_VERISON="v0.1.1"
+MEV_COMMIT_VERISON="v0.2.0"
 # Define the base URL for downloading the mev-commit release
 BASE_URL="https://github.com/primevprotocol/mev-commit/releases/download/$MEV_COMMIT_VERISON"
 
 # Contract Addresses
-BIDDER_REGISTRY_CONTRACT="0x62197Abd7672925c7606Bdf9931e42baCa6619AD"
-PROVIDER_REGISTRY_CONTRACT="0xeA73E67c2E34C4E02A2f3c5D416F59B76e7617fC"
-PRECONF_CONTRACT="0xBB632720f817792578060F176694D8f7230229d9"
+BIDDER_REGISTRY_CONTRACT="0xa86a41b57Fb73f9118F84847574517258d29eAD0"
+PROVIDER_REGISTRY_CONTRACT="0x5960774AD41D03DAB4916a30bD2190f8b3b3b4b2"
+PRECONF_CONTRACT="0x7D1a4707e573D260581f3AB3f90f697Ab03fC6Dd"
 
 # Function to show usage
 usage() {
@@ -31,8 +31,8 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Check if RPC_URL and NODE_TYPE are provided
-if [ -z "$RPC_URL" ] || [ -z "$NODE_TYPE" ]; then
-    echo "Error: Missing required arguments."
+if [ -z "$NODE_TYPE" ]; then
+    echo "Error: Missing required argument --node-type."
     usage
 fi
 
@@ -87,22 +87,6 @@ if [ ! -d ~/.foundry/bin ]; then
     $HOME/.foundry/bin/foundryup
 fi
 
-# check if ROOT_DIRECTORY exists; if it does, ask user if they want to overwrite
-# if [ -d "$ROOT_DIRECTORY" ]; then
-#     echo -e "\033[31m[\033[34m*\033[31m]\033[33m $ROOT_DIRECTORY already exists. Do you want to overwrite it? [y/n]\033[0m"
-#     read -r OVERWRITE
-#     if [ "$OVERWRITE" == "y" ]; then
-#         rm -rf $ROOT_DIRECTORY
-#     else
-#         # Start mev-commit with the config file
-#         if ! $ROOT_DIRECTORY/mev-commit start --config=$ROOT_DIRECTORY/config.yaml; then
-#             echo "Failed to start mev-commit with the specified config."
-#             exit 1
-#         fi
-#     fi
-# fi
-
-
 # Create the target directory if it doesn't exist
 mkdir -p $ROOT_DIRECTORY
 
@@ -119,10 +103,10 @@ fi
 cd $ROOT_DIRECTORY
 
 echo -e "\033[31m[\033[34m*\033[31m]\033[33m Initializing mev-commit...\033[0m"
-./mev-commit --settlement-rpc-endpoint $RPC_URL --peer-type $NODE_TYPE --bidder-registry-contract $BIDDER_REGISTRY_CONTRACT --provider-registry-contract $PROVIDER_REGISTRY_CONTRACT --preconf-contract $PRECONF_CONTRACT --bootnodes /ip4/69.67.151.95/tcp/13522/p2p/16Uiu2HAmLYUvthfDCewNMdfPhrVefBbsfaPL22fWWfC2zuoh5SpV & 
+./mev-commit --settlement-rpc-endpoint $RPC_URL --peer-type $NODE_TYPE --bootnodes /dnsaddr/bootnode.testnet.mev-commit.xyz & 
 server_pid=$!
 
-sleep 3
+sleep 5
 
 KEY=$(cat $ROOT_DIRECTORY/key)
 ADDRESS=$(cast wallet address --private-key 0x$(cat $ROOT_DIRECTORY/key))
@@ -135,13 +119,14 @@ if ! $HOME/.foundry/bin/cast send --rpc-url "$RPC_URL" --private-key 0x7c9bf0f01
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Failed to send transaction with cast. \033[0m"
     exit 1
 fi
-
+# Need to wait for node to start up
+sleep 3
 # Check i Node_Type is provider
 if [ "$NODE_TYPE" == "provider" ]; then
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
 
     # Use the RPC URL variable in the cast send command
-    if ! $HOME/.foundry/bin/cast send $PROVIDER_REGISTRY_CONTRACT "registerAndStake()" $ADDRESS --rpc-url http://69.67.151.95:8545 --private-key $KEY --value 50ether > /dev/null 2>&1; then
+    if ! $HOME/.foundry/bin/cast send $PROVIDER_REGISTRY_CONTRACT "registerAndStake()" $ADDRESS --rpc-url "$RPC_URL" --private-key $KEY --value 50ether > /dev/null 2>&1; then
             echo "Failed to send provider registration transaction."
             exit 1
     fi
@@ -150,7 +135,7 @@ else
 
     # Use the RPC URL variable in the cast send command
     if ! curl -X POST http://localhost:13523/v1/bidder/prepay/1000000000000000000 > /dev/null 2>&1; then
-            echo "Failed to send provider registration transaction."
+            echo "Failed to send bidder registration transaction."
             exit 1
     fi
 fi
