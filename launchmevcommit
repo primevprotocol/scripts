@@ -123,13 +123,21 @@ fi
 sleep 3
 # Check i Node_Type is provider
 if [ "$NODE_TYPE" == "provider" ]; then
-    echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
 
-    # Use the RPC URL variable in the cast send command
-    if ! $HOME/.foundry/bin/cast send $PROVIDER_REGISTRY_CONTRACT "registerAndStake()" $ADDRESS --rpc-url "$RPC_URL" --private-key $KEY --value 50ether > /dev/null 2>&1; then
-            echo "Failed to send provider registration transaction."
-            exit 1
+    stake_amount=$($HOME/.foundry/bin/cast call $PROVIDER_REGISTRY_CONTRACT 'checkStake(address)' $ADDRESS --rpc-url $RPC_URL)
+    if [[ $stake_amount =~ ^0x0+$ ]]; then
+
+	echo -e "\033[31m[\033[34m*\033[31m]\033[33m Registering $ADDRESS as a provider with 50 ether stake \033[0m"
+
+	# Use the RPC URL variable in the cast send command
+	if ! $HOME/.foundry/bin/cast send $PROVIDER_REGISTRY_CONTRACT "registerAndStake()" $ADDRESS --rpc-url "$RPC_URL" --private-key $KEY --value 50ether > /dev/null 2>&1; then
+		echo "Failed to send provider registration transaction."
+		exit 1
+	fi
+    else
+	echo -e "\033[31m[\033[34m*\033[31m]\033[33m The address $ADDRESS is already registered as provider \033[0m"
     fi
+
 else
     echo -e "\033[31m[\033[34m*\033[31m]\033[33m Adding a prepay for bidder with $ADDRESS \033[0m"
 
