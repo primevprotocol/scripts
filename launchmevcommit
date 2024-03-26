@@ -2,7 +2,7 @@
 
 # Initialize variables
 RPC_URL="https://chainrpc.testnet.mev-commit.xyz"
-NODE_TYPE=""
+NODE_TYPE="bidder"
 ROOT_DIRECTORY="$HOME/.mev-commit"
 MEV_COMMIT_VERISON="v0.2.0"
 # Define the base URL for downloading the mev-commit release
